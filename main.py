@@ -109,6 +109,10 @@ class StoneWashingAssistant:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        # 保存canvas和scrollable_frame的引用
+        self.left_canvas = canvas
+        self.scrollable_frame = scrollable_frame
+
         # 标题
         title_label = tk.Label(scrollable_frame, text="石板洗练助手 v3.0",
                                font=("微软雅黑", 16, "bold"), bg="#f0f0f0")
@@ -237,8 +241,28 @@ class StoneWashingAssistant:
                                     font=("微软雅黑", 8), bg="#f0f0f0", fg="#666")
         self.stats_label.pack(pady=3)
 
-        # 调整滚动区域
-        canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1 * (event.delta / 120)), "units"))
+        # 修复：只在内容超出时启用滚动，并正确绑定鼠标滚轮事件
+        def on_mousewheel(event):
+            # 获取scrollable_frame和canvas的实际尺寸
+            frame_height = scrollable_frame.winfo_reqheight()
+            canvas_height = canvas.winfo_height()
+
+            # 只有当scrollable_frame的高度大于canvas的高度时才允许滚动
+            if frame_height > canvas_height:
+                # 计算滚动步数（Windows鼠标滚轮事件delta通常是120的倍数）
+                scroll_step = -1 * (event.delta // 120)
+                canvas.yview_scroll(scroll_step, "units")
+
+        # 绑定鼠标滚轮事件到canvas
+        canvas.bind("<MouseWheel>", on_mousewheel)
+
+        # 同时绑定到scrollable_frame内的所有控件，确保鼠标在内容区域也能滚动
+        def bind_mousewheel_to_children(widget):
+            widget.bind("<MouseWheel>", on_mousewheel)
+            for child in widget.winfo_children():
+                bind_mousewheel_to_children(child)
+
+        bind_mousewheel_to_children(scrollable_frame)
 
         # 右侧主区域
         right_frame = tk.Frame(self.root)
